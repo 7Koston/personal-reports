@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance } from 'axios';
 import type { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import type { CalendarCredentials } from '../global/config.ts';
 import type { ReportContent, ReportResult } from '../global/types.d.ts';
 import { formatError } from '../util/error.util.ts';
@@ -22,7 +23,12 @@ interface CalendarEventsResponse {
   items: CalendarEvent[];
 }
 
-type MeetingsByDate = Record<string, string[]>; // ISO date string -> array of meeting titles
+interface DayStatistics {
+  count: number;
+  totalMinutes: number;
+}
+
+type MeetingsByDate = Record<string, DayStatistics>; // ISO date string -> meeting statistics
 
 export async function generateCalendarReport(
   credentials: CalendarCredentials,
@@ -94,34 +100,30 @@ function organizeEventsByDate(
   _endDate: Dayjs,
 ): MeetingsByDate {
   const meetingsByDate: MeetingsByDate = {};
-  const excludedTitles = ['busy', 'vacation', 'out of office'];
 
   for (const event of events) {
-    // Skip events without a summary
-    if (!event.summary) {
-      continue;
-    }
+    // Get the event start and end times
+    const startDateTime = event.start.dateTime ?? event.start.date ?? '';
+    const endDateTime = event.end.dateTime ?? event.end.date ?? '';
 
-    // Filter out excluded meeting titles (case-insensitive)
-    const summaryLower = event.summary.toLowerCase();
-    if (excludedTitles.some((excluded) => summaryLower.includes(excluded))) {
-      continue;
-    }
-
-    // Get the event date
-    const eventDate = event.start.dateTime ?? event.start.date ?? '';
-    if (eventDate === '') {
+    if (startDateTime === '' || endDateTime === '') {
       continue;
     }
 
     // Extract ISO date (YYYY-MM-DD)
-    const dateKey = eventDate.split('T')[0];
+    const _startDateTime = dayjs(startDateTime);
+    const _endDateTime = dayjs(endDateTime);
+    const dateKey = toIsoDate(_startDateTime);
 
-    // Initialize array if not exists
-    meetingsByDate[dateKey] ??= [];
+    // Calculate duration in minutes
+    const durationMinutes = _endDateTime.diff(_startDateTime, 'minute');
 
-    // Add meeting title
-    meetingsByDate[dateKey].push(event.summary);
+    // Initialize statistics if not exists
+    meetingsByDate[dateKey] ??= { count: 0, totalMinutes: 0 };
+
+    // Update statistics
+    meetingsByDate[dateKey].count += 1;
+    meetingsByDate[dateKey].totalMinutes += durationMinutes;
   }
 
   return meetingsByDate;
@@ -138,16 +140,22 @@ function formatCalendarReport(
   // Create a content entry for each day in the period
   for (const date of dates) {
     const dateKey = toIsoDate(date);
-    const meetings = meetingsByDate[dateKey];
+    const statistics = meetingsByDate[dateKey];
 
     // Only add content if there are meetings for this day
-    if (meetings !== undefined && meetings.length > 0) {
-      const meetingItems = meetings.map((meeting) => `• ${meeting}`);
+    if (statistics !== undefined && statistics.count > 0) {
+      const hours = Math.floor(statistics.totalMinutes / 60);
+      const minutes = statistics.totalMinutes % 60;
+
+      const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
       contents.set(dateKey, [
         {
           title: 'Meetings:',
-          items: meetingItems,
+          items: [
+            `• Total: ${statistics.count} meeting${statistics.count !== 1 ? 's' : ''}`,
+            `• Duration: ${durationText}`,
+          ],
         },
       ]);
     }

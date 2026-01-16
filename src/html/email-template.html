@@ -56,12 +56,18 @@
       }
 
       .report-section {
-        padding: 12px 0;
+        padding: 12px;
         border-bottom: 1px solid var(--hr, #00000008);
       }
 
-      .report-section:last-child {
+      tbody tr:last-child .report-section {
         border-bottom: none;
+      }
+
+      th {
+        text-align: left;
+        font-weight: 400;
+        padding: 0;
       }
 
       .period {
@@ -81,7 +87,7 @@
       h3 {
         font-size: 15px;
         line-height: 1.2;
-        margin: 6px 0 4px 0;
+        margin: 0 0 4px 0;
         color: var(--text1, #000000);
         font-weight: 600;
       }
@@ -91,7 +97,7 @@
         line-height: 1.2;
         margin: 0 0 2px 0;
         color: var(--text1, #000000);
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .day-item {
@@ -138,10 +144,15 @@
       role="presentation"
       cellspacing="0"
       cellpadding="0">
-      <tbody>
+      <thead>
         <tr>
-          <td>{{REPORTS}}</td>
+          <th>
+            <p class="period">{{PERIOD}}</p>
+          </th>
         </tr>
+      </thead>
+      <tbody>
+        {{REPORTS}}
       </tbody>
     </table>
     <table class="footer">

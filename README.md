@@ -32,8 +32,8 @@ TZ=America/New_York
 GITHUB_ACTIONS=false
 GITHUB_REPOSITORY=owner/repo
 GITHUB_WORKFLOW=Weekly Reports
-GITHUB_TOKENS=token1;token2  # Semicolon-separated for multiple orgs
-GITHUB_USERNAME=your-github-username
+APP_GITHUB_TOKENS=token1;token2  # Semicolon-separated for multiple orgs
+APP_GITHUB_USERNAME=your-github-username
 
 # Google Calendar Configuration
 CALENDAR_ENABLED=true
@@ -145,8 +145,8 @@ jobs:
       - run: node --env-file=.env src/index.ts
         env:
           TZ: ${{ secrets.TZ }}
-          GITHUB_TOKENS: ${{ secrets.GITHUB_TOKENS }}
-          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
+          APP_GITHUB_TOKENS: ${{ secrets.APP_GITHUB_TOKENS }}
+          APP_GITHUB_USERNAME: ${{ secrets.APP_GITHUB_USERNAME }}
           CALENDAR_ENABLED: ${{ secrets.CALENDAR_ENABLED }}
           GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
           GOOGLE_APP_PASSWORD: ${{ secrets.GOOGLE_APP_PASSWORD }}

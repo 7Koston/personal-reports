@@ -25,3 +25,12 @@ jobs:
 
       - name: Run TypeScript script
         run: node src/index.ts
+        env:
+          TZ: ${{ secrets.TZ }}
+          GOOGLE_CALENDAR_API_KEY: ${{ secrets.GOOGLE_CALENDAR_API_KEY }}
+          GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
+          EMAIL_ENABLED: ${{ secrets.EMAIL_ENABLED }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          GOOGLE_APP_USER: ${{ secrets.GOOGLE_APP_USER }}
+          GOOGLE_EMAIL_APP_PASSWORD: ${{ secrets.GOOGLE_EMAIL_APP_PASSWORD }}

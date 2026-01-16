@@ -23,7 +23,6 @@ export interface EmailConfig {
   enabled: boolean;
   from: string;
   to: string[];
-  subject: string;
   auth: {
     user: string;
     pass: string;
@@ -44,8 +43,8 @@ export const config: AppConfig = {
     repository: process.env.GITHUB_REPOSITORY ?? '',
     workflow: process.env.GITHUB_WORKFLOW ?? '',
     credentials: {
-      tokens: process.env.GITHUB_TOKENS?.split(';') ?? [],
-      username: process.env.GITHUB_USERNAME ?? '',
+      tokens: process.env.APP_GITHUB_TOKENS?.split(';') ?? [],
+      username: process.env.APP_GITHUB_USERNAME ?? '',
     },
   },
   calendar: {
@@ -58,7 +57,6 @@ export const config: AppConfig = {
     enabled: process.env.EMAIL_ENABLED === 'true',
     from: process.env.EMAIL_FROM ?? '',
     to: process.env.EMAIL_TO?.split(';') ?? [],
-    subject: process.env.EMAIL_SUBJECT ?? 'Weekly Activity Report',
     auth: {
       user: process.env.GOOGLE_APP_USER ?? '', // user email
       pass: process.env.GOOGLE_EMAIL_APP_PASSWORD ?? '', // The 16-character App Password
@@ -79,10 +77,10 @@ export function verifyConfig(): Error | undefined {
     missing.push('GITHUB_WORKFLOW');
   }
   if (config.github.credentials.tokens.length <= 0) {
-    missing.push('GITHUB_TOKENS');
+    missing.push('APP_GITHUB_TOKENS');
   }
   if (config.github.credentials.username === '') {
-    missing.push('GITHUB_USERNAME');
+    missing.push('APP_GITHUB_USERNAME');
   }
 
   // Email validation - only if enabled
