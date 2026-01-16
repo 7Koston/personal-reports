@@ -6,7 +6,6 @@ import { sendEmailReport } from './reporters/email.ts';
 import { generateCalendarReport } from './sources/calendar.ts';
 import { generateGitHubReport } from './sources/github.ts';
 import { formatError } from './util/error.util.ts';
-import { replacer } from './util/json.util.ts';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -70,8 +69,6 @@ for (const [date, githubContents] of githubReport.contents) {
   const existingContents = mergedReport.contents.get(date) ?? [];
   mergedReport.contents.set(date, [...existingContents, ...githubContents]);
 }
-
-console.log(JSON.stringify(mergedReport, replacer));
 
 // Send Email Report
 if (config.email.enabled) {

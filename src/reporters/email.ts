@@ -159,8 +159,6 @@ export async function sendEmailReport(
     const htmlContent = await formatReportAsHtml(report);
     const textContent = formatReportAsText(report);
 
-    console.log(htmlContent);
-
     // Send email
     await transporter.sendMail({
       from: config.from,
@@ -170,8 +168,8 @@ export async function sendEmailReport(
       html: htmlContent,
     });
 
-    console.log('✅ Email sent successfully!');
-    console.log(`   Recipients: ${config.to.join(', ')}`);
+    console.log('Email sent successfully!');
+    console.log(`Recipients: ${config.to.join(', ')}`);
   } catch (error) {
     throw new Error(`Failed to send email report: ${formatError(error)}`);
   }

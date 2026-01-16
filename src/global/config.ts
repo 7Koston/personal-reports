@@ -108,7 +108,7 @@ export function verifyConfig(): Error | undefined {
   }
 
   if (missing.length > 0) {
-    return new Error(`Missing environment variables: ${missing.join(', ')}`);
+    throw new Error(`Missing environment variables: ${missing.join(', ')}`);
   }
   return;
 }
