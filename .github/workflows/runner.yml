@@ -29,6 +29,8 @@ jobs:
         run: node src/index.ts
         env:
           TZ: ${{ secrets.TZ }}
+          GH_TOKENS: ${{ secrets.GH_TOKENS }}
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
           GOOGLE_CALENDAR_API_KEY: ${{ secrets.GOOGLE_CALENDAR_API_KEY }}
           GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
           EMAIL_ENABLED: ${{ secrets.EMAIL_ENABLED }}
