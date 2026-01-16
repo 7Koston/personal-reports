@@ -43,8 +43,8 @@ export const config: AppConfig = {
     repository: process.env.GITHUB_REPOSITORY ?? '',
     workflow: process.env.GITHUB_WORKFLOW ?? '',
     credentials: {
-      tokens: process.env.APP_GITHUB_TOKENS?.split(';') ?? [],
-      username: process.env.APP_GITHUB_USERNAME ?? '',
+      tokens: process.env.GH_TOKENS?.split(';') ?? [],
+      username: process.env.GH_USERNAME ?? '',
     },
   },
   calendar: {
@@ -77,10 +77,10 @@ export function verifyConfig(): Error | undefined {
     missing.push('GITHUB_WORKFLOW');
   }
   if (config.github.credentials.tokens.length <= 0) {
-    missing.push('APP_GITHUB_TOKENS');
+    missing.push('GH_TOKENS');
   }
   if (config.github.credentials.username === '') {
-    missing.push('APP_GITHUB_USERNAME');
+    missing.push('GH_USERNAME');
   }
 
   // Email validation - only if enabled
