@@ -1,0 +1,27 @@
+name: Weekly runner
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  run-script:
+    runs-on: ubuntu-slim
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: pnpm install --prod
+
+      - name: Run TypeScript script
+        run: node src/index.ts

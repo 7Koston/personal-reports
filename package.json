@@ -1,0 +1,48 @@
+{
+  "name": "personal-repors",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TypeScript scripts for GitHub Actions",
+  "license": "GPL-3.0-only",
+  "author": "7Koston",
+  "type": "module",
+  "scripts": {
+    "prepare": "husky || true",
+    "clean": "node ./scripts/clean.mjs dist",
+    "clean:full": "node ./scripts/clean.mjs dist node_modules pnpm-lock.yaml",
+    "format": "prettier src/** --write",
+    "lint": "eslint src/**",
+    "lint:fix": "eslint src/** --fix",
+    "local": "node --env-file=.env src/index.ts"
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "pnpm lint:fix",
+      "pnpm format"
+    ]
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "dayjs": "^1.11.19",
+    "es-toolkit": "^1.44.0",
+    "nodemailer": "^7.0.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/eslint-config-prettier": "^6.11.3",
+    "@types/node": "^25.0.9",
+    "@types/nodemailer": "^7.0.5",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.0",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.0"
+  },
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=24.13.0"
+  }
+}
