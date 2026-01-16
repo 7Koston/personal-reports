@@ -36,25 +36,34 @@ GH_TOKENS=token1;token2  # Semicolon-separated for multiple orgs
 GH_USERNAME=your-github-username
 
 # Google Calendar Configuration
-CALENDAR_ENABLED=true
+GOOGLE_CALENDAR_API_KEY=your-calendar-api-key
 GOOGLE_CALENDAR_ID=primary  # Or specific calendar ID
-GOOGLE_APP_PASSWORD=your-16-char-app-password  # Used for both Calendar API and Gmail
 
 # Email Configuration
 EMAIL_ENABLED=true
 EMAIL_FROM=your-email@gmail.com
 EMAIL_TO=recipient1@example.com;recipient2@example.com
-EMAIL_SUBJECT=Weekly Activity Report
 GOOGLE_APP_USER=your-email@gmail.com
+GOOGLE_EMAIL_APP_PASSWORD=your-16-char-app-password
 ```
 
-### Getting a Google App Password
+### Google API Setup
+
+#### Calendar API Key
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create or select a project
+3. Enable the Google Calendar API
+4. Go to "Credentials" → "Create Credentials" → "API Key"
+5. Use the generated key as `GOOGLE_CALENDAR_API_KEY`
+
+#### Gmail App Password
 
 1. Go to your [Google Account](https://myaccount.google.com/)
 2. Navigate to Security → 2-Step Verification
 3. Scroll down to "App passwords"
 4. Generate a new app password for "Mail" or "Other"
-5. Use the 16-character password as `GOOGLE_APP_PASSWORD`
+5. Use the 16-character password as `GOOGLE_EMAIL_APP_PASSWORD`
 
 ## Running Scripts
 
@@ -117,47 +126,14 @@ pnpm clean:full  # Remove dist, node_modules, and pnpm-lock.yaml
 │   └── workflows/         # GitHub Actions workflows
 ├── package.json
 ├── tsconfig.json
-├── eslint.config.mjs
-└── README.md
-```
+├─Calculates total meeting count and duration per day
+- Displays statistics for each day in the report
 
-## GitHub Actions Usage
+### API Authentication
 
-Example workflow to run weekly reports:
-
-```yaml
-name: Weekly Reports
-on:
-  schedule:
-    - cron: '0 9 * * 1' # Every Monday at 9 AM
-  workflow_dispatch: # Allow manual trigger
-
-jobs:
-  generate-reports:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - uses: pnpm/action-setup@v4
-      - run: pnpm install
-      - run: node --env-file=.env src/index.ts
-        env:
-          TZ: ${{ secrets.TZ }}
-          GH_TOKENS: ${{ secrets.GH_TOKENS }}
-          GH_USERNAME: ${{ secrets.GH_USERNAME }}
-          CALENDAR_ENABLED: ${{ secrets.CALENDAR_ENABLED }}
-          GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
-          GOOGLE_APP_PASSWORD: ${{ secrets.GOOGLE_APP_PASSWORD }}
-          EMAIL_ENABLED: ${{ secrets.EMAIL_ENABLED }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
-          GOOGLE_APP_USER: ${{ secrets.GOOGLE_APP_USER }}
-```
-
-## Calendar Integration
-
+This implementation uses:
+- **Calendar API Key** for reading calendar events
+- **Gmail App Password** for sending email reports via nodemailer
 The Google Calendar integration:
 
 - Fetches events from the specified date range
@@ -176,3 +152,4 @@ This implementation uses a Google App Password with the Calendar API for simplic
 3. Import and call it in `src/index.ts`
 4. Add configuration in `src/global/config.ts`
 5. Update the GitHub Actions workflow with new environment variables
+```
