@@ -12,7 +12,8 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 try {
-  console.log(config);
+  console.log('Reading ENV');
+  console.log(`App TZ: ${config.tz}`);
   verifyConfig();
 } catch (e: unknown) {
   if (e != null && e instanceof Error) {
