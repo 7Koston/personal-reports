@@ -5,7 +5,7 @@
     "moduleResolution": "NodeNext",
     "lib": ["ESNext"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -25,6 +25,6 @@
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "scripts/**/*", "src/global/types.d.ts"],
   "exclude": ["node_modules"]
 }

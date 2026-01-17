@@ -30,3 +30,5 @@ Thumbs.db
 coverage/
 *.lcov
 .nyc_output/
+
+refresh_token

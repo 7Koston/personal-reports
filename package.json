@@ -1,5 +1,5 @@
 {
-  "name": "personal-repors",
+  "name": "personal-reports",
   "version": "1.0.0",
   "private": true,
   "description": "TypeScript scripts for GitHub Actions",
@@ -8,12 +8,13 @@
   "type": "module",
   "scripts": {
     "prepare": "husky || true",
-    "clean": "node ./scripts/clean.mjs dist",
-    "clean:full": "node ./scripts/clean.mjs dist node_modules pnpm-lock.yaml",
+    "clean": "node ./scripts/clean.ts dist",
+    "clean:full": "node ./scripts/clean.ts dist node_modules pnpm-lock.yaml",
     "format": "prettier src/** --write",
     "lint": "eslint src/**",
     "lint:fix": "eslint src/** --fix",
-    "local": "node --env-file=.env src/index.ts"
+    "local": "node --env-file=.env src/index.ts",
+    "local:google:token": "node --env-file=.env scripts/google-refresh-token.ts"
   },
   "lint-staged": {
     "*.{js,ts}": [
@@ -24,7 +25,6 @@
   "dependencies": {
     "axios": "^1.13.2",
     "dayjs": "^1.11.19",
-    "es-toolkit": "^1.44.0",
     "nodemailer": "^7.0.12"
   },
   "devDependencies": {
@@ -36,6 +36,7 @@
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
+    "open": "^11.0.0",
     "prettier": "^3.8.0",
     "prettier-plugin-organize-imports": "^4.3.0",
     "typescript": "^5.9.3",

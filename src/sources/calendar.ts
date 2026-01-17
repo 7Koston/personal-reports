@@ -1,34 +1,40 @@
-import axios, { type AxiosInstance } from 'axios';
+import axios from 'axios';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
+import { promises as fs } from 'fs';
+import path from 'path';
 import type { CalendarCredentials } from '../global/config.ts';
-import type { ReportContent, ReportResult } from '../global/types.d.ts';
+import type {
+  GoogleTokenResponse,
+  ReportContent,
+  ReportResult,
+} from '../global/types.js';
 import { formatError } from '../util/error.util.ts';
 import { getDateRange, toIsoDate } from '../util/time.util.ts';
-
-interface CalendarEvent {
-  id: string;
-  summary: string;
-  start: {
-    dateTime?: string;
-    date?: string;
-  };
-  end: {
-    dateTime?: string;
-    date?: string;
-  };
-}
-
-interface CalendarEventsResponse {
-  items: CalendarEvent[];
-}
 
 interface DayStatistics {
   count: number;
   totalMinutes: number;
+  eventSummaries: string[];
 }
 
 type MeetingsByDate = Record<string, DayStatistics>; // ISO date string -> meeting statistics
+
+interface CalendarEvents {
+  items: CalendarEvent[];
+}
+
+interface CalendarEvent {
+  summary?: string;
+  start?: {
+    dateTime?: string;
+    date?: string;
+  };
+  end?: {
+    dateTime?: string;
+    date?: string;
+  };
+}
 
 export async function generateCalendarReport(
   credentials: CalendarCredentials,
@@ -36,16 +42,21 @@ export async function generateCalendarReport(
   endDate: Dayjs,
 ): Promise<ReportResult> {
   try {
-    const api = createCalendarClient(credentials.apiKey);
-    const calendarId = credentials.calendarId;
+    // Get access token using refresh token
+    const tokenData = await refreshAccessToken(credentials);
 
     // Fetch all events in the date range
     const events = await fetchCalendarEvents(
-      api,
-      calendarId,
+      tokenData.access_token,
+      credentials.calendarId,
       startDate,
       endDate,
     );
+
+    // Save the new refresh token if provided
+    if (tokenData.refresh_token != null && tokenData.refresh_token !== '') {
+      await saveRefreshToken(tokenData.refresh_token);
+    }
 
     // Filter and organize events by date
     const meetingsByDate = organizeEventsByDate(events, startDate, endDate);
@@ -59,25 +70,53 @@ export async function generateCalendarReport(
   }
 }
 
-function createCalendarClient(apiKey: string): AxiosInstance {
-  return axios.create({
-    baseURL: 'https://www.googleapis.com/calendar/v3',
-    params: {
-      key: apiKey,
-    },
-  });
+async function refreshAccessToken(
+  credentials: CalendarCredentials,
+): Promise<GoogleTokenResponse> {
+  try {
+    const response = await axios.post<GoogleTokenResponse>(
+      'https://oauth2.googleapis.com/token',
+      {
+        client_id: credentials.clientId,
+        client_secret: credentials.clientSecret,
+        refresh_token: credentials.refreshToken,
+        grant_type: 'refresh_token',
+      },
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to refresh access token: ${formatError(error)}`);
+  }
+}
+
+async function saveRefreshToken(refreshToken: string): Promise<void> {
+  try {
+    const refreshTokenPath = path.join(process.cwd(), 'refresh_token');
+    await fs.writeFile(refreshTokenPath, refreshToken, 'utf-8');
+  } catch (error) {
+    console.error('Failed to save refresh token:', formatError(error));
+  }
 }
 
 async function fetchCalendarEvents(
-  api: AxiosInstance,
+  accessToken: string,
   calendarId: string,
   startDate: Dayjs,
   endDate: Dayjs,
 ): Promise<CalendarEvent[]> {
   try {
-    const response = await api.get<CalendarEventsResponse>(
-      `/calendars/${encodeURIComponent(calendarId)}/events`,
+    const response = await axios.get<CalendarEvents>(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
       {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
         params: {
           timeMin: startDate.toISOString(),
           timeMax: endDate.toISOString(),
@@ -103,8 +142,8 @@ function organizeEventsByDate(
 
   for (const event of events) {
     // Get the event start and end times
-    const startDateTime = event.start.dateTime ?? event.start.date ?? '';
-    const endDateTime = event.end.dateTime ?? event.end.date ?? '';
+    const startDateTime = event.start?.dateTime ?? event.start?.date ?? '';
+    const endDateTime = event.end?.dateTime ?? event.end?.date ?? '';
 
     if (startDateTime === '' || endDateTime === '') {
       continue;
@@ -119,11 +158,20 @@ function organizeEventsByDate(
     const durationMinutes = _endDateTime.diff(_startDateTime, 'minute');
 
     // Initialize statistics if not exists
-    meetingsByDate[dateKey] ??= { count: 0, totalMinutes: 0 };
+    meetingsByDate[dateKey] ??= {
+      count: 0,
+      totalMinutes: 0,
+      eventSummaries: [],
+    };
 
     // Update statistics
     meetingsByDate[dateKey].count += 1;
     meetingsByDate[dateKey].totalMinutes += durationMinutes;
+
+    // Add event summary if available
+    if (event.summary != null) {
+      meetingsByDate[dateKey].eventSummaries.push(event.summary);
+    }
   }
 
   return meetingsByDate;
@@ -151,11 +199,8 @@ function formatCalendarReport(
 
       contents.set(dateKey, [
         {
-          title: 'Meetings:',
-          items: [
-            `• Total: ${statistics.count} meeting${statistics.count !== 1 ? 's' : ''}`,
-            `• Duration: ${durationText}`,
-          ],
+          title: `Meetings: ${statistics.count} (${durationText})`,
+          items: statistics.eventSummaries.map((summary) => `• ${summary}`),
         },
       ]);
     }

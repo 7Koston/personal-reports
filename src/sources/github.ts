@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance } from 'axios';
 import type { Dayjs } from 'dayjs';
 import type { GitHubCredentials } from '../global/config.ts';
-import type { ReportContent, ReportResult } from '../global/types.d.ts';
+import type { ReportContent, ReportResult } from '../global/types.js';
 import { formatError } from '../util/error.util.ts';
 import {
   extractIsoDate,

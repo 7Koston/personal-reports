@@ -4,14 +4,16 @@ export interface GitHubCredentials {
 }
 
 export interface GitHubConfig {
-  actions: boolean;
-  repository: string;
-  workflow: string;
+  actions: boolean; // Automatically grabbed from Github actions
+  repository: string; // Automatically grabbed from Github actions
+  workflow: string; // Automatically grabbed from Github actions
   credentials: GitHubCredentials;
 }
 
 export interface CalendarCredentials {
-  apiKey: string;
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
   calendarId: string;
 }
 
@@ -49,7 +51,9 @@ export const config: AppConfig = {
   },
   calendar: {
     credentials: {
-      apiKey: process.env.GOOGLE_CALENDAR_API_KEY ?? '', // Use the same App Password from email
+      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      refreshToken: process.env.GOOGLE_REFRESH_TOKEN ?? '',
       calendarId: process.env.GOOGLE_CALENDAR_ID ?? 'primary',
     },
   },
@@ -69,12 +73,6 @@ export function verifyConfig(): Error | undefined {
 
   if (config.tz === '') {
     missing.push('TZ');
-  }
-  if (config.github.repository === '') {
-    missing.push('GITHUB_REPOSITORY');
-  }
-  if (config.github.workflow === '') {
-    missing.push('GITHUB_WORKFLOW');
   }
   if (config.github.credentials.tokens.length <= 0) {
     missing.push('GH_TOKENS');
@@ -99,9 +97,15 @@ export function verifyConfig(): Error | undefined {
     }
   }
 
-  // Calendar validation - only if enabled
-  if (config.calendar.credentials.apiKey === '') {
-    missing.push('GOOGLE_CALENDAR_API_KEY');
+  // Calendar validation
+  if (config.calendar.credentials.clientId === '') {
+    missing.push('GOOGLE_CLIENT_ID');
+  }
+  if (config.calendar.credentials.clientSecret === '') {
+    missing.push('GOOGLE_CLIENT_SECRET');
+  }
+  if (config.calendar.credentials.refreshToken === '') {
+    missing.push('GOOGLE_REFRESH_TOKEN');
   }
   if (config.calendar.credentials.calendarId === '') {
     missing.push('GOOGLE_CALENDAR_ID');

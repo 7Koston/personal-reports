@@ -14,6 +14,7 @@ try {
   console.log('Reading ENV');
   console.log(`App TZ: ${config.tz}`);
   verifyConfig();
+  dayjs.tz.setDefault(config.tz);
 } catch (e: unknown) {
   if (e != null && e instanceof Error) {
     // Exit with success code
@@ -23,8 +24,8 @@ try {
 }
 
 const now = dayjs();
-const weekStart = now.startOf('week');
-const weekEnd = now.endOf('week');
+const sunday = now.startOf('week');
+const prevSunday = now.startOf('week').subtract(1, 'week');
 
 console.log(`Node version: ${process.version}`);
 console.log(`Platform: ${process.platform}`);
@@ -43,15 +44,15 @@ if (githubActions) {
 // Calendar Report
 const calendarReport = await generateCalendarReport(
   config.calendar.credentials,
-  weekStart,
-  weekEnd,
+  sunday,
+  prevSunday,
 );
 
 // Github Report
 const githubReport = await generateGitHubReport(
   config.github.credentials,
-  weekStart,
-  weekEnd,
+  sunday,
+  prevSunday,
 );
 
 // Merge reports into one
@@ -59,8 +60,8 @@ const mergedReport = {
   title: 'Weekly Activity Report',
   contents: new Map(calendarReport.contents),
   period: {
-    start: weekStart,
-    end: weekEnd,
+    start: sunday,
+    end: prevSunday,
   },
 };
 
@@ -79,7 +80,32 @@ if (config.email.enabled) {
     process.exit(1);
   }
 } else {
-  console.log('Email reporting is disabled.');
+  console.log('Email reporting is disabled. Printing report to console:\n');
+
+  console.log(`=== ${mergedReport.title} ===`);
+  console.log(
+    `Period: ${mergedReport.period.start.format('YYYY-MM-DD')} to ${mergedReport.period.end.format('YYYY-MM-DD')}\n`,
+  );
+
+  // Sort dates chronologically
+  const sortedDates = Array.from(mergedReport.contents.keys()).sort();
+
+  for (const date of sortedDates) {
+    const contents = mergedReport.contents.get(date);
+    if (contents && contents.length > 0) {
+      console.log(`\n📅 ${date}`);
+      console.log('─'.repeat(50));
+
+      for (const content of contents) {
+        console.log(`\n  ${content.title}`);
+        for (const item of content.items) {
+          console.log(`    ${item}`);
+        }
+      }
+    }
+  }
+
+  console.log('\n' + '='.repeat(50));
 }
 
 // Exit with success code
