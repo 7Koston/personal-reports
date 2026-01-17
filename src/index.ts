@@ -24,8 +24,8 @@ try {
 }
 
 const now = dayjs();
-const prevSunday = now.startOf('week').subtract(1, 'week');
-const sunday = now.startOf('week');
+const prevSunday = now.startOf('day').subtract(1, 'week');
+const sunday = now.startOf('day');
 
 console.log(`Node version: ${process.version}`);
 console.log(`Platform: ${process.platform}`);
