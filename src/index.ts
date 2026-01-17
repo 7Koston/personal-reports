@@ -61,8 +61,8 @@ const mergedReport = {
   title: 'Weekly Activity Report',
   contents: new Map(calendarReport.contents),
   period: {
-    start: sunday,
-    end: prevSunday,
+    start: prevSunday,
+    end: sunday,
   },
 };
 
