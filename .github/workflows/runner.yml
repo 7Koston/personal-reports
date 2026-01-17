@@ -43,6 +43,13 @@ jobs:
           GOOGLE_EMAIL_APP_PASSWORD: ${{ secrets.GOOGLE_EMAIL_APP_PASSWORD }}
 
       - name: Update repository secret
-        run: gh secret set GOOGLE_REFRESH_TOKEN --body "$(cat refresh_token)" --repo ${{ github.repository }}
+        if: hashFiles('refresh_token') != ''
+        run: |
+          if [ -s refresh_token ]; then
+            gh secret set GOOGLE_REFRESH_TOKEN --body "$(cat refresh_token)" --repo ${{ github.repository }}
+            echo "Refresh token updated"
+          else
+            echo "No new refresh token to update"
+          fi
         env:
           GH_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
