@@ -209,7 +209,7 @@ To create this token:
 
 The repository includes a workflow file at [.github/workflows/runner.yml](.github/workflows/runner.yml) that:
 
-- **Runs weekly** every Sunday at 5 AM UTC (`cron: "0 5 * * 7"`)
+- **Runs weekly** every Sunday at 5 AM UTC (`cron: "0 5 * * 0"`)
 - **Can be triggered manually** via workflow dispatch
 - **Runs on push/PR** to `main` branch (for testing)
 
@@ -254,7 +254,7 @@ To change the schedule, edit the cron expression in [.github/workflows/runner.ym
 ```yaml
 on:
   schedule:
-    - cron: '0 5 * * 7' # Every Sunday at 5 AM UTC
+    - cron: '0 5 * * 0' # Every Sunday at 5 AM UTC
 ```
 
 Common cron schedules:

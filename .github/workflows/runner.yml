@@ -2,7 +2,7 @@ name: Weekly runner
 
 on:
   schedule:
-    - cron: "0 5 * * 7" # Every Sunday at 5 AM
+    - cron: "0 5 * * 0" # Every Sunday at 5 AM UTC
   push:
     branches: [main]
   pull_request:
