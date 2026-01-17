@@ -24,12 +24,13 @@ try {
 }
 
 const now = dayjs();
-const sunday = now.startOf('week');
 const prevSunday = now.startOf('week').subtract(1, 'week');
+const sunday = now.startOf('week');
 
 console.log(`Node version: ${process.version}`);
 console.log(`Platform: ${process.platform}`);
 console.log(`Current directory: ${process.cwd()}`);
+console.log(`Period: ${prevSunday.toISOString()} - ${sunday.toISOString()}`);
 
 // Example: Process environment variables
 const githubActions = config.github.actions;
@@ -44,15 +45,15 @@ if (githubActions) {
 // Calendar Report
 const calendarReport = await generateCalendarReport(
   config.calendar.credentials,
-  sunday,
   prevSunday,
+  sunday,
 );
 
 // Github Report
 const githubReport = await generateGitHubReport(
   config.github.credentials,
-  sunday,
   prevSunday,
+  sunday,
 );
 
 // Merge reports into one
