@@ -45,4 +45,4 @@ jobs:
       - name: Update repository secret
         run: gh secret set GOOGLE_REFRESH_TOKEN --body "$(cat refresh_token)" --repo ${{ github.repository }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
