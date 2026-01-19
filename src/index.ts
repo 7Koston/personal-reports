@@ -98,9 +98,9 @@ if (config.email.enabled) {
       console.log('─'.repeat(50));
 
       for (const content of contents) {
-        console.log(`\n  ${content.title}`);
+        console.log(`\n${content.title}`);
         for (const item of content.items) {
-          console.log(`    ${item}`);
+          console.log(`  ${item}`);
         }
       }
     }
