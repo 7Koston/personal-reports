@@ -1,6 +1,6 @@
 {
   "name": "personal-reports",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "TypeScript scripts for GitHub Actions",
   "license": "GPL-3.0-only",
@@ -23,26 +23,26 @@
     ]
   },
   "dependencies": {
-    "axios": "^1.13.2",
+    "axios": "^1.13.4",
     "dayjs": "^1.11.19",
-    "nodemailer": "^7.0.12"
+    "nodemailer": "^7.0.13"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@types/eslint-config-prettier": "^6.11.3",
-    "@types/node": "^25.0.9",
-    "@types/nodemailer": "^7.0.5",
+    "@types/node": "^25.1.0",
+    "@types/nodemailer": "^7.0.9",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "open": "^11.0.0",
-    "prettier": "^3.8.0",
+    "prettier": "^3.8.1",
     "prettier-plugin-organize-imports": "^4.3.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.0"
   },
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "pnpm@10.28.2",
   "engines": {
     "node": ">=24.13.0"
   }
