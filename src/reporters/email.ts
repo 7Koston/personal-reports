@@ -50,7 +50,7 @@ async function formatReportAsHtml(report: ReportResult): Promise<string> {
       for (const content of contentArray) {
         dayContent.push(`<h4>${escapeHtml(content.title)}</h4>`);
         for (const item of content.items) {
-          dayContent.push(`<span class="day-item">${escapeHtml(item)}</span>`);
+          dayContent.push(`<div class="day-item">${escapeHtml(item)}</div>`);
         }
       }
 
