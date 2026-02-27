@@ -173,7 +173,9 @@ export async function generateGitHubReport(
       allCommits,
     );
   } catch (error) {
-    throw new Error(`Failed to generate GitHub report: ${formatError(error)}`);
+    throw new Error(`Failed to generate GitHub report: ${formatError(error)}`, {
+      cause: error,
+    });
   }
 }
 

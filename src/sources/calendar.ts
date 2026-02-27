@@ -66,6 +66,7 @@ export async function generateCalendarReport(
   } catch (error) {
     throw new Error(
       `Failed to generate Calendar report: ${formatError(error)}`,
+      { cause: error },
     );
   }
 }
@@ -91,7 +92,9 @@ async function refreshAccessToken(
 
     return response.data;
   } catch (error) {
-    throw new Error(`Failed to refresh access token: ${formatError(error)}`);
+    throw new Error(`Failed to refresh access token: ${formatError(error)}`, {
+      cause: error,
+    });
   }
 }
 
@@ -129,7 +132,9 @@ async function fetchCalendarEvents(
 
     return response.data.items ?? [];
   } catch (error) {
-    throw new Error(`Failed to fetch calendar events: ${formatError(error)}`);
+    throw new Error(`Failed to fetch calendar events: ${formatError(error)}`, {
+      cause: error,
+    });
   }
 }
 

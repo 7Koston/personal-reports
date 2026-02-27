@@ -171,6 +171,8 @@ export async function sendEmailReport(
     console.log('Email sent successfully!');
     console.log(`Recipients: ${config.to.join(', ')}`);
   } catch (error) {
-    throw new Error(`Failed to send email report: ${formatError(error)}`);
+    throw new Error(`Failed to send email report: ${formatError(error)}`, {
+      cause: error,
+    });
   }
 }

@@ -24,13 +24,13 @@ try {
 }
 
 const now = dayjs();
-const prevSunday = now.startOf('day').subtract(1, 'week');
-const sunday = now.startOf('day');
+const periodStart = now.endOf('day').subtract(8, 'day');
+const periodEnd = now.startOf('day');
 
 console.log(`Node version: ${process.version}`);
 console.log(`Platform: ${process.platform}`);
 console.log(`Current directory: ${process.cwd()}`);
-console.log(`Period: ${prevSunday.toISOString()} - ${sunday.toISOString()}`);
+console.log(`Period: ${periodStart.toString()} - ${periodEnd.toString()}`);
 
 // Example: Process environment variables
 const githubActions = config.github.actions;
@@ -45,15 +45,15 @@ if (githubActions) {
 // Calendar Report
 const calendarReport = await generateCalendarReport(
   config.calendar.credentials,
-  prevSunday,
-  sunday,
+  periodStart,
+  periodEnd,
 );
 
 // Github Report
 const githubReport = await generateGitHubReport(
   config.github.credentials,
-  prevSunday,
-  sunday,
+  periodStart,
+  periodEnd,
 );
 
 // Merge reports into one
@@ -61,8 +61,8 @@ const mergedReport = {
   title: 'Weekly Activity Report',
   contents: new Map(calendarReport.contents),
   period: {
-    start: prevSunday,
-    end: sunday,
+    start: periodStart,
+    end: periodEnd,
   },
 };
 
