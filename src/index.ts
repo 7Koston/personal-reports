@@ -24,8 +24,8 @@ try {
 }
 
 const now = dayjs();
-const periodStart = now.endOf('day').subtract(8, 'day');
-const periodEnd = now.startOf('day');
+const periodStart = now.subtract(7, 'day').startOf('day');
+const periodEnd = now.endOf('day');
 
 console.log(`Node version: ${process.version}`);
 console.log(`Platform: ${process.platform}`);
