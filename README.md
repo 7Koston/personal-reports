@@ -154,6 +154,19 @@ Or directly using Node.js:
 node --env-file=.env src/index.ts
 ```
 
+Run overtime-only reporting for a custom period:
+
+```bash
+node --env-file=.env src/index.ts --mode overtime --start 2026-01-01 --end 2026-03-01
+```
+
+Overtime mode behavior:
+
+- Requires `--start` and `--end` in `YYYY-MM-DD` format
+- Treats provided dates as full days in configured `TZ`
+- Extracts only overtime windows between Friday 23:00 and Monday 05:00
+- Queries GitHub and Calendar per overtime window, then merges into one daily report
+
 ### Generate Google Refresh Token
 
 Generate or regenerate your Google OAuth2 refresh token:
@@ -209,7 +222,7 @@ To create this token:
 
 The repository includes a workflow file at [.github/workflows/runner.yml](.github/workflows/runner.yml) that:
 
-- **Runs weekly** every Sunday at 5 AM UTC (`cron: "0 5 * * 0"`)
+- **Runs weekly** every Monday at 5 AM UTC (`cron: "0 5 * * 1"`)
 - **Can be triggered manually** via workflow dispatch
 - **Runs on push/PR** to `main` branch (for testing)
 
@@ -230,7 +243,8 @@ The workflow:
 3. Select **Weekly runner** workflow from the left sidebar
 4. Click **Run workflow** dropdown
 5. Select the branch (usually `main`)
-6. Click **Run workflow** button
+6. Optional: choose `mode=overtime` and provide `start_date` and `end_date` in `YYYY-MM-DD`
+7. Click **Run workflow** button
 
 #### Option 2: Push to Main Branch
 
@@ -238,7 +252,7 @@ The workflow will automatically run on any push to the `main` branch during test
 
 #### Option 3: Wait for Scheduled Run
 
-The workflow will automatically run every Sunday at 5 AM UTC based on the cron schedule.
+The workflow will automatically run every Monday at 5 AM UTC based on the cron schedule.
 
 ### Step 4: Monitor Workflow Runs
 
@@ -254,7 +268,7 @@ To change the schedule, edit the cron expression in [.github/workflows/runner.ym
 ```yaml
 on:
   schedule:
-    - cron: '0 5 * * 0' # Every Sunday at 5 AM UTC
+    - cron: '0 5 * * 1' # Every Monday at 5 AM UTC
 ```
 
 Common cron schedules:

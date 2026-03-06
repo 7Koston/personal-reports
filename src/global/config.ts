@@ -68,7 +68,7 @@ export const config: AppConfig = {
   },
 };
 
-export function verifyConfig(): Error | undefined {
+export function verifyConfig(): void {
   const missing: string[] = [];
 
   if (config.tz === '') {

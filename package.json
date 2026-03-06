@@ -1,6 +1,6 @@
 {
   "name": "personal-reports",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "description": "TypeScript scripts for GitHub Actions",
   "license": "GPL-3.0-only",
@@ -24,12 +24,12 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/eslint-config-prettier": "^6.11.3",
-    "@types/node": "^25.3.2",
+    "@types/node": "^25.3.5",
     "@types/nodemailer": "^7.0.11",
     "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.7",
+    "lint-staged": "^16.3.2",
     "open": "^11.0.0",
     "prettier": "^3.8.1",
     "prettier-plugin-organize-imports": "^4.3.0",

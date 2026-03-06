@@ -202,10 +202,15 @@ function formatCalendarReport(
 
       const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
+      const meetingItems: string[] = [];
+      for (const summary of statistics.eventSummaries) {
+        meetingItems.push(`• ${summary}`);
+      }
+
       contents.set(dateKey, [
         {
           title: `Meetings: ${statistics.count} (${durationText})`,
-          items: statistics.eventSummaries.map((summary) => `• ${summary}`),
+          items: meetingItems,
         },
       ]);
     }

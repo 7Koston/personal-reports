@@ -3,12 +3,9 @@ import type { Dayjs } from 'dayjs';
 import type { GitHubCredentials } from '../global/config.ts';
 import type { ReportContent, ReportResult } from '../global/types.js';
 import { formatError } from '../util/error.util.ts';
-import {
-  extractIsoDate,
-  formatDateForGitHub,
-  getDateRange,
-  toIsoDate,
-} from '../util/time.util.ts';
+import { extractIsoDate, getDateRange, toIsoDate } from '../util/time.util.ts';
+
+const commitStatsDetailRequestLimit = 25;
 
 interface GitHubIssueSearchItem {
   title: string;
@@ -36,11 +33,24 @@ interface GitHubCommitDetail {
   };
 }
 
+interface GitHubPullRequestDetail {
+  additions?: number;
+  deletions?: number;
+}
+
+interface CommitFetchResult {
+  commits: Commit[];
+  truncatedStatsCount: number;
+  rateLimitHit: boolean;
+}
+
 interface PullRequest {
   title: string;
   number: number;
   repository: string;
   date: string; // ISO date string
+  additions?: number;
+  deletions?: number;
 }
 
 interface Commit {
@@ -50,15 +60,86 @@ interface Commit {
   repository: string; // Repository full name
 }
 
-interface GitHubReportData {
-  reviewedPRs: string[];
-  openedPRs: string[];
-  contributedProjects: string[];
-  totalChanges: {
-    additions: number;
-    deletions: number;
-    total: number;
-  };
+function formatDateTimeForGitHub(date: Dayjs): string {
+  return date
+    .toDate()
+    .toISOString()
+    .replace(/\.\d{3}Z$/, 'Z');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value != null;
+}
+
+function getHeaderStringValue(
+  headers: unknown,
+  key: string,
+): string | undefined {
+  if (!isRecord(headers)) {
+    return;
+  }
+
+  const rawValue = headers[key];
+  if (typeof rawValue === 'string') {
+    return rawValue;
+  }
+
+  return;
+}
+
+function isRateLimitError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) {
+    return false;
+  }
+
+  const statusCode = error.response?.status;
+  if (statusCode === 429) {
+    return true;
+  }
+
+  const remaining = getHeaderStringValue(
+    error.response?.headers,
+    'x-ratelimit-remaining',
+  );
+  if (remaining === '0') {
+    return true;
+  }
+
+  if (!isRecord(error.response?.data)) {
+    return false;
+  }
+
+  const message = error.response.data.message;
+  if (typeof message !== 'string') {
+    return false;
+  }
+
+  return message.toLowerCase().includes('rate limit');
+}
+
+function getRateLimitResetHint(error: unknown): string {
+  if (!axios.isAxiosError(error)) {
+    return '';
+  }
+
+  const resetHeader = getHeaderStringValue(
+    error.response?.headers,
+    'x-ratelimit-reset',
+  );
+  if (resetHeader == null) {
+    return '';
+  }
+
+  const resetUnix = Number(resetHeader);
+  if (!Number.isFinite(resetUnix)) {
+    return '';
+  }
+
+  return ` (resets around ${new Date(resetUnix * 1000).toISOString()})`;
+}
+
+function getPullRequestKey(pullRequest: PullRequest): string {
+  return `${pullRequest.repository}#${pullRequest.number}`;
 }
 
 export async function generateGitHubReport(
@@ -66,23 +147,13 @@ export async function generateGitHubReport(
   startDate: Dayjs,
   endDate: Dayjs,
 ): Promise<ReportResult> {
-  const reportData: GitHubReportData = {
-    reviewedPRs: [],
-    openedPRs: [],
-    contributedProjects: [],
-    totalChanges: {
-      additions: 0,
-      deletions: 0,
-      total: 0,
-    },
-  };
-
   try {
     // Use all tokens to gather data from different organizations
-    const allOpenedPRs = new Map<number, PullRequest>();
-    const allReviewedPRs = new Map<number, PullRequest>();
+    const allOpenedPRs = new Map<string, PullRequest>();
+    const allReviewedPRs = new Map<string, PullRequest>();
     const allCommits: Commit[] = [];
-    const allProjects = new Set<string>();
+    let hasRateLimitError = false;
+    let truncatedCommitStats = 0;
 
     // Iterate through all tokens to aggregate data
     for (const token of credentials.tokens) {
@@ -97,7 +168,7 @@ export async function generateGitHubReport(
           endDate,
         );
         for (const pr of openedPRs) {
-          allOpenedPRs.set(pr.number, pr);
+          allOpenedPRs.set(getPullRequestKey(pr), pr);
         }
 
         // Fetch PRs reviewed by the user
@@ -108,61 +179,51 @@ export async function generateGitHubReport(
           endDate,
         );
         for (const pr of reviewedPRs) {
-          allReviewedPRs.set(pr.number, pr);
+          allReviewedPRs.set(getPullRequestKey(pr), pr);
         }
 
-        // Fetch commits by the user to get changes and projects
-        const commits = await fetchUserCommits(
+        // Fetch commits by the user for code changes and projects.
+        const commitResult = await fetchUserCommits(
           api,
           credentials.username,
           startDate,
           endDate,
         );
-        allCommits.push(...commits);
+        allCommits.push(...commitResult.commits);
+        truncatedCommitStats += commitResult.truncatedStatsCount;
 
-        // Get projects from commits
-        const commitProjects = await fetchCommitProjects(
-          api,
-          credentials.username,
-          startDate,
-          endDate,
-        );
-        for (const project of commitProjects) {
-          allProjects.add(project);
+        if (commitResult.rateLimitHit) {
+          hasRateLimitError = true;
+          console.warn(
+            'GitHub API rate limit reached while fetching commit stats. Skipping remaining token requests for this period.',
+          );
+          break;
         }
       } catch (error) {
+        if (isRateLimitError(error)) {
+          hasRateLimitError = true;
+          console.warn(
+            `GitHub API rate limit reached${getRateLimitResetHint(error)}. Skipping remaining token requests for this period.`,
+          );
+          break;
+        }
+
         // Log error but continue with other tokens
         console.warn(`Failed to fetch data with token: ${formatError(error)}`);
       }
     }
 
-    // Convert aggregated data to report format
-    reportData.openedPRs = [];
-    for (const pr of allOpenedPRs.values()) {
-      reportData.openedPRs.push(`${pr.repository}#${pr.number}: ${pr.title}`);
-    }
-    reportData.reviewedPRs = [];
-    for (const pr of allReviewedPRs.values()) {
-      reportData.reviewedPRs.push(`${pr.repository}#${pr.number}: ${pr.title}`);
+    if (truncatedCommitStats > 0) {
+      console.warn(
+        `Skipped detailed GitHub stats for ${truncatedCommitStats} commits to avoid rate-limit exhaustion.`,
+      );
     }
 
-    // Calculate total changes
-    for (const commit of allCommits) {
-      reportData.totalChanges.additions += commit.additions;
-      reportData.totalChanges.deletions += commit.deletions;
+    if (hasRateLimitError) {
+      console.warn(
+        'GitHub activity may be partial because API rate limit was hit.',
+      );
     }
-    reportData.totalChanges.total =
-      reportData.totalChanges.additions + reportData.totalChanges.deletions;
-
-    // Add unique projects from PRs to the set
-    for (const pr of allOpenedPRs.values()) {
-      allProjects.add(pr.repository);
-    }
-    for (const pr of allReviewedPRs.values()) {
-      allProjects.add(pr.repository);
-    }
-
-    reportData.contributedProjects = Array.from(allProjects);
 
     // Generate report string
     return formatReport(
@@ -195,7 +256,7 @@ async function fetchOpenedPRs(
   startDate: Dayjs,
   endDate: Dayjs,
 ): Promise<PullRequest[]> {
-  const query = `is:pr author:${username} created:${formatDateForGitHub(startDate)}..${formatDateForGitHub(endDate)}`;
+  const query = `is:pr author:${username} created:${formatDateTimeForGitHub(startDate)}..${formatDateTimeForGitHub(endDate)}`;
   const response = await api.get<{ items: GitHubIssueSearchItem[] }>(
     '/search/issues',
     {
@@ -206,12 +267,39 @@ async function fetchOpenedPRs(
     },
   );
 
-  return response.data.items.map((item) => ({
-    title: item.title,
-    number: item.number,
-    repository: item.repository_url.split('/').slice(-2).join('/'),
-    date: extractIsoDate(item.created_at),
-  }));
+  const openedPullRequests: PullRequest[] = [];
+  for (const item of response.data.items) {
+    openedPullRequests.push({
+      title: item.title,
+      number: item.number,
+      repository: item.repository_url.split('/').slice(-2).join('/'),
+      date: extractIsoDate(item.created_at),
+    });
+  }
+
+  for (const pullRequest of openedPullRequests) {
+    const pullRequestApiPath = `/repos/${pullRequest.repository}/pulls/${pullRequest.number}`;
+
+    try {
+      const pullRequestDetail =
+        await api.get<GitHubPullRequestDetail>(pullRequestApiPath);
+      pullRequest.additions = pullRequestDetail.data.additions ?? 0;
+      pullRequest.deletions = pullRequestDetail.data.deletions ?? 0;
+    } catch (error) {
+      if (isRateLimitError(error)) {
+        console.warn(
+          `GitHub API rate limit reached while fetching pull request details${getRateLimitResetHint(error)}.`,
+        );
+        break;
+      }
+
+      console.warn(
+        `Failed to fetch pull request details: ${formatError(error)}`,
+      );
+    }
+  }
+
+  return openedPullRequests;
 }
 
 async function fetchReviewedPRs(
@@ -220,7 +308,7 @@ async function fetchReviewedPRs(
   startDate: Dayjs,
   endDate: Dayjs,
 ): Promise<PullRequest[]> {
-  const query = `is:pr reviewed-by:${username} created:${formatDateForGitHub(startDate)}..${formatDateForGitHub(endDate)}`;
+  const query = `is:pr reviewed-by:${username} created:${formatDateTimeForGitHub(startDate)}..${formatDateTimeForGitHub(endDate)}`;
   const response = await api.get<{ items: GitHubIssueSearchItem[] }>(
     '/search/issues',
     {
@@ -231,12 +319,17 @@ async function fetchReviewedPRs(
     },
   );
 
-  return response.data.items.map((item) => ({
-    title: item.title,
-    number: item.number,
-    date: extractIsoDate(item.created_at),
-    repository: item.repository_url.split('/').slice(-2).join('/'),
-  }));
+  const reviewedPullRequests: PullRequest[] = [];
+  for (const item of response.data.items) {
+    reviewedPullRequests.push({
+      title: item.title,
+      number: item.number,
+      date: extractIsoDate(item.created_at),
+      repository: item.repository_url.split('/').slice(-2).join('/'),
+    });
+  }
+
+  return reviewedPullRequests;
 }
 
 async function fetchUserCommits(
@@ -244,93 +337,84 @@ async function fetchUserCommits(
   username: string,
   startDate: Dayjs,
   endDate: Dayjs,
-): Promise<Commit[]> {
-  const commits: Commit[] = [];
-  const page = 1;
+): Promise<CommitFetchResult> {
   const perPage = 100;
 
   // Search for commits by the user
-  const query = `author:${username} committer-date:${formatDateForGitHub(startDate)}..${formatDateForGitHub(endDate)}`;
+  const query = `author:${username} committer-date:${formatDateTimeForGitHub(startDate)}..${formatDateTimeForGitHub(endDate)}`;
 
-  try {
-    const response = await api.get<{ items: GitHubCommitSearchItem[] }>(
-      '/search/commits',
-      {
-        params: {
-          q: query,
-          per_page: perPage,
-          page: page,
-        },
-        headers: {
-          Accept: 'application/vnd.github+json',
-        },
+  const response = await api.get<{ items: GitHubCommitSearchItem[] }>(
+    '/search/commits',
+    {
+      params: {
+        q: query,
+        per_page: perPage,
       },
-    );
+      headers: {
+        Accept: 'application/vnd.github+json',
+      },
+    },
+  );
 
-    for (const commit of response.data.items) {
-      try {
-        // Fetch detailed commit info to get stats
-        const commitDetail = await api.get<GitHubCommitDetail>(
-          commit.url.replace('https://api.github.com', ''),
+  const commits: Commit[] = [];
+  const commitApiPaths: string[] = [];
+
+  for (const item of response.data.items) {
+    commits.push({
+      additions: 0,
+      deletions: 0,
+      date: extractIsoDate(item.commit.committer.date),
+      repository: item.repository.full_name,
+    });
+    commitApiPaths.push(item.url.replace('https://api.github.com', ''));
+  }
+
+  const statsToFetch = Math.min(commitStatsDetailRequestLimit, commits.length);
+  let truncatedStatsCount = commits.length - statsToFetch;
+
+  for (let index = 0; index < statsToFetch; index += 1) {
+    const commitApiPath = commitApiPaths[index];
+    const commitTarget = commits[index];
+
+    if (commitApiPath == null || commitTarget == null) {
+      continue;
+    }
+
+    try {
+      const commitDetail = await api.get<GitHubCommitDetail>(commitApiPath);
+      commitTarget.additions = commitDetail.data.stats?.additions ?? 0;
+      commitTarget.deletions = commitDetail.data.stats?.deletions ?? 0;
+    } catch (error) {
+      truncatedStatsCount += 1;
+
+      if (isRateLimitError(error)) {
+        truncatedStatsCount += statsToFetch - (index + 1);
+        console.warn(
+          `GitHub API rate limit reached while fetching commit details${getRateLimitResetHint(error)}.`,
         );
-        commits.push({
-          additions: commitDetail.data.stats?.additions ?? 0,
-          deletions: commitDetail.data.stats?.deletions ?? 0,
-          date: extractIsoDate(commit.commit.committer.date),
-          repository: commit.repository.full_name,
-        });
-      } catch (error) {
-        // Skip commits that can't be fetched
-        console.warn(`Failed to fetch commit details: ${formatError(error)}`);
+        return {
+          commits,
+          truncatedStatsCount,
+          rateLimitHit: true,
+        };
       }
+
+      console.warn(`Failed to fetch commit details: ${formatError(error)}`);
     }
-  } catch (error) {
-    console.warn(`Failed to fetch commits: ${formatError(error)}`);
   }
 
-  return commits;
-}
-
-async function fetchCommitProjects(
-  api: AxiosInstance,
-  username: string,
-  startDate: Dayjs,
-  endDate: Dayjs,
-): Promise<string[]> {
-  const projects = new Set<string>();
-  const query = `author:${username} committer-date:${formatDateForGitHub(startDate)}..${formatDateForGitHub(endDate)}`;
-
-  try {
-    const response = await api.get<{ items: GitHubCommitSearchItem[] }>(
-      '/search/commits',
-      {
-        params: {
-          q: query,
-          per_page: 100,
-        },
-        headers: {
-          Accept: 'application/vnd.github+json',
-        },
-      },
-    );
-
-    for (const commit of response.data.items) {
-      if (commit.repository?.full_name) {
-        projects.add(commit.repository.full_name);
-      }
-    }
-  } catch (error) {
-    console.warn(`Failed to fetch commit projects: ${formatError(error)}`);
-  }
-
-  return Array.from(projects);
+  return {
+    commits,
+    truncatedStatsCount,
+    rateLimitHit: false,
+  };
 }
 
 function formatReport(
   startDate: Dayjs,
   endDate: Dayjs,
-  allOpenedPRs: Map<number, PullRequest>,
-  allReviewedPRs: Map<number, PullRequest>,
+  allOpenedPRs: Map<string, PullRequest>,
+  allReviewedPRs: Map<string, PullRequest>,
   allCommits: Commit[],
 ): ReportResult {
   const contents = new Map<string, ReportContent[]>();
@@ -398,12 +482,34 @@ function formatReport(
     }
 
     // Calculate changes for this specific day
-    let dailyAdditions = 0;
-    let dailyDeletions = 0;
+    let commitAdditions = 0;
+    let commitDeletions = 0;
     for (const commit of commitsForDay) {
-      dailyAdditions += commit.additions;
-      dailyDeletions += commit.deletions;
+      commitAdditions += commit.additions;
+      commitDeletions += commit.deletions;
     }
+
+    let openedPrAdditions = 0;
+    let openedPrDeletions = 0;
+    for (const pullRequest of openedPRsForDay) {
+      if (pullRequest.additions == null || pullRequest.deletions == null) {
+        continue;
+      }
+
+      openedPrAdditions += pullRequest.additions;
+      openedPrDeletions += pullRequest.deletions;
+    }
+
+    let dailyAdditions = commitAdditions;
+    let dailyDeletions = commitDeletions;
+    const commitTotal = commitAdditions + commitDeletions;
+    const openedPrTotal = openedPrAdditions + openedPrDeletions;
+    const usingOpenedPrTotals = commitTotal === 0 && openedPrTotal > 0;
+    if (usingOpenedPrTotals) {
+      dailyAdditions = openedPrAdditions;
+      dailyDeletions = openedPrDeletions;
+    }
+
     const dailyTotal = dailyAdditions + dailyDeletions;
 
     // Projects Contributed To (only show if there's activity)
@@ -420,13 +526,19 @@ function formatReport(
 
     // Total Changes
     if (dailyTotal > 0) {
+      const changeItems = [
+        `• Additions: +${dailyAdditions}`,
+        `• Deletions: -${dailyDeletions}`,
+        `• Total Changes: ${dailyTotal}`,
+      ];
+
+      if (usingOpenedPrTotals) {
+        changeItems.push('• Source: Opened pull request stats');
+      }
+
       contentArray.push({
         title: 'Total Code Changes:',
-        items: [
-          `• Additions: +${dailyAdditions}`,
-          `• Deletions: -${dailyDeletions}`,
-          `• Total Changes: ${dailyTotal}`,
-        ],
+        items: changeItems,
       });
     }
 

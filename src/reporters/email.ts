@@ -7,8 +7,8 @@ import type { EmailConfig } from '../global/config.ts';
 import type { ReportResult } from '../global/types.js';
 import { formatError } from '../util/error.util.ts';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const fileName = fileURLToPath(import.meta.url);
+const currentDir = dirname(fileName);
 
 /**
  * Creates a Gmail transporter using Google App Password authentication
@@ -28,7 +28,7 @@ function createGmailTransporter(config: EmailConfig): Transporter {
  */
 async function formatReportAsHtml(report: ReportResult): Promise<string> {
   // Read the HTML template
-  const templatePath = join(__dirname, '..', 'html', 'email-template.html');
+  const templatePath = join(currentDir, '..', 'html', 'email-template.html');
   const template = await readFile(templatePath, 'utf-8');
 
   // Build report sections
@@ -36,13 +36,16 @@ async function formatReportAsHtml(report: ReportResult): Promise<string> {
 
   const startDateStr = report.period.start.format('MMMM D, YYYY');
   const endDateStr = report.period.end.format('MMMM D, YYYY');
-  const periodText = `Period: ${startDateStr} - ${endDateStr}`;
+  const periodText =
+    report.contextNote != null
+      ? `Period: ${startDateStr} - ${endDateStr} | ${report.contextNote}`
+      : `Period: ${startDateStr} - ${endDateStr}`;
 
   // Iterate through each day's content - each day becomes a table row
   const sortedDates = Array.from(report.contents.keys()).sort();
   for (const dateKey of sortedDates) {
     const contentArray = report.contents.get(dateKey);
-    if (contentArray && contentArray.length > 0) {
+    if (contentArray != null && contentArray.length > 0) {
       const dayContent: string[] = [];
       dayContent.push(`<h3 class="day">${dateKey}</h3>`);
 
@@ -89,6 +92,9 @@ function formatReportAsText(report: ReportResult): string {
   textParts.push('-'.repeat(60));
   textParts.push(report.title);
   textParts.push(`Period: ${startDateStr} - ${endDateStr}`);
+  if (report.contextNote != null) {
+    textParts.push(report.contextNote);
+  }
   textParts.push('-'.repeat(60));
   textParts.push('');
 
@@ -96,7 +102,7 @@ function formatReportAsText(report: ReportResult): string {
   const sortedDates = Array.from(report.contents.keys()).sort();
   for (const dateKey of sortedDates) {
     const contentArray = report.contents.get(dateKey);
-    if (contentArray && contentArray.length > 0) {
+    if (contentArray != null && contentArray.length > 0) {
       textParts.push(dateKey);
       textParts.push('');
 

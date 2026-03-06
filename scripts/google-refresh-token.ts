@@ -8,11 +8,11 @@ import { parse } from 'node:url';
 import open from 'open';
 import type { GoogleTokenResponse } from '../src/global/types.js';
 
-const PORT = 8080;
-const SCOPES = ['https://www.googleapis.com/auth/calendar.events.readonly'];
-const REDIRECT_URI = `http://localhost:${PORT}/oauth2callback`;
-const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const port = 8080;
+const scopes = ['https://www.googleapis.com/auth/calendar.events.readonly'];
+const redirectUri = `http://localhost:${port}/oauth2callback`;
+const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+const tokenUrl = 'https://oauth2.googleapis.com/token';
 
 function getRefreshToken(): void {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -33,13 +33,13 @@ function getRefreshToken(): void {
   // Generate the authorization URL
   const authParams = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     response_type: 'code',
-    scope: SCOPES.join(' '),
+    scope: scopes.join(' '),
     access_type: 'offline',
     prompt: 'select_account consent',
   });
-  const authorizeUrl = `${AUTH_URL}?${authParams.toString()}`;
+  const authorizeUrl = `${authUrl}?${authParams.toString()}`;
 
   console.log('\nGoogle OAuth2 Token Generator\n');
   console.log(
@@ -86,12 +86,12 @@ function getRefreshToken(): void {
       void (async (): Promise<void> => {
         try {
           const tokenResponse = await axios.post<GoogleTokenResponse>(
-            TOKEN_URL,
+            tokenUrl,
             new URLSearchParams({
               code,
               client_id: clientId,
               client_secret: clientSecret,
-              redirect_uri: REDIRECT_URI,
+              redirect_uri: redirectUri,
               grant_type: 'authorization_code',
             }),
             {
@@ -166,8 +166,8 @@ function getRefreshToken(): void {
   });
 
   // Start the local server
-  server.listen(PORT, () => {
-    console.log(`🌐 Local server started on http://localhost:${PORT}`);
+  server.listen(port, () => {
+    console.log(`🌐 Local server started on http://localhost:${port}`);
     console.log('📱 Opening browser for authorization...\n');
 
     // Open the authorization URL in the default browser
@@ -184,7 +184,7 @@ function getRefreshToken(): void {
   // Handle server errors
   server.on('error', (error) => {
     console.error('\n❌ Server error:', error);
-    console.log(`Make sure port ${PORT} is not already in use.\n`);
+    console.log(`Make sure port ${port} is not already in use.\n`);
     process.exit(1);
   });
 }
