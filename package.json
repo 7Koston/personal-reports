@@ -1,6 +1,6 @@
 {
   "name": "personal-reports",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
   "description": "TypeScript scripts for GitHub Actions",
   "license": "GPL-3.0-only",
@@ -17,27 +17,27 @@
     "local:google:token": "node --env-file=.env scripts/google-refresh-token.ts"
   },
   "dependencies": {
-    "axios": "^1.13.6",
-    "dayjs": "^1.11.19",
-    "nodemailer": "^8.0.1"
+    "axios": "^1.15.2",
+    "dayjs": "^1.11.20",
+    "nodemailer": "^8.0.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/eslint-config-prettier": "^6.11.3",
-    "@types/node": "^25.3.5",
-    "@types/nodemailer": "^7.0.11",
-    "eslint": "^10.0.2",
+    "@types/node": "^25.6.0",
+    "@types/nodemailer": "^8.0.0",
+    "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
-    "lint-staged": "^16.3.2",
+    "lint-staged": "^16.4.0",
     "open": "^11.0.0",
-    "prettier": "^3.8.1",
+    "prettier": "^3.8.3",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.1"
   },
-  "packageManager": "pnpm@10.30.3",
+  "packageManager": "pnpm@10.33.2",
   "engines": {
-    "node": ">=24.13.0"
+    "node": ">=24.15.0"
   }
 }
