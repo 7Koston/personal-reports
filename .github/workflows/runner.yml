@@ -2,7 +2,7 @@ name: Weekly runner
 
 on:
   schedule:
-    - cron: "0 5 * * 1" # Every Monday at 5 AM UTC
+    - cron: "0 4 * * 1" # Every Monday at 4 AM UTC
   push:
     branches: [main]
   pull_request:
@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - run: corepack enable
 
       - name: Setup Node.js
